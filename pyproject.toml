@@ -8,6 +8,7 @@ readme = "README.rst"
 
 [tool.poetry.dependencies]
 python = "^3.8"
+vvm = "^0.1.0"
 
 [tool.poetry.group.lint.dependencies]
 black = "^22.10.0"
