@@ -80,6 +80,10 @@ class VersionManager:
             self._logger.warning(
                 f"zkVyper v{version!s} not found at {version.location!r}."
             )
+        else:
+            self._logger.info(
+                f"Uninstalling zkVyper v{version!s} found at {version.location!r}."
+            )
 
     @functools.cached_property
     def remote_versions(self) -> FrozenSet[BinaryVersion]:
