@@ -46,7 +46,7 @@ class VersionManager:
     def local_versions(self) -> Set[Version]:
         """Local zkVyper binary versions."""
         cache_dir = pathlib.Path(self.cache_dir)
-        return set(Version(fp.name.split("-")[-1]) for fp in cache_dir.iterdir())
+        return {Version(fp.name.split("-")[-1]) for fp in cache_dir.iterdir()}
 
     @property
     def cache_dir(self) -> str:
