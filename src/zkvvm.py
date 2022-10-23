@@ -21,6 +21,7 @@ class VersionManager:
     """zkVyper Version Manager.
 
     :param str cache_dir: The user-specific cache directory.
+    :param str log_file: The runtime log file.
     """
 
     _AMD64 = ("amd64", "x86_64", "i386", "i586", "i686")
