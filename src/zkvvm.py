@@ -7,8 +7,9 @@ import platform
 from typing import Optional, Set
 
 import requests
+import vvm
 from appdirs import user_cache_dir, user_log_dir
-from semantic_version import Version
+from semantic_version import SimpleSpec, Version
 
 logger = logging.getLogger(__name__)
 
@@ -29,11 +30,17 @@ class VersionManager:
     _DEFAULT_CONFIG = {
         "ZKVVM_CACHE_DIR": user_cache_dir(__name__),
         "ZKVVM_LOG_FILE": os.path.join(user_log_dir(__name__), "zkvvm.log"),
+        "ZKVVM_ACTIVE_VERSION": ">=1.1.0",
+        "ZKVVM_VYPER_VERSION": "^0.3.3",
     }
     _REMOTE_BASE_URL = "https://api.github.com/repos/matter-labs/zkvyper-bin/contents/"
 
     def __init__(
-        self, cache_dir: Optional[str] = None, log_file: Optional[str] = None
+        self,
+        cache_dir: Optional[str] = None,
+        log_file: Optional[str] = None,
+        active_version: Optional[str] = None,
+        vyper_version: Optional[str] = None,
     ) -> None:
         config = collections.ChainMap(os.environ, self._DEFAULT_CONFIG)  # type: ignore
 
@@ -42,6 +49,8 @@ class VersionManager:
 
         self.cache_dir = cache_dir or self.cache_dir
         self.log_file = log_file or self.log_file
+        self.active_version = active_version or self.active_version
+        self.vyper_version = vyper_version or self.vyper_version
 
         self.logger = logger.getChild(self.__class__.__name__)
 
@@ -87,6 +96,26 @@ class VersionManager:
     def log_file(self, value: str) -> None:
         path = pathlib.Path(value).expanduser()
         self._config["ZKVVM_LOG_FILE"] = path.as_posix()
+
+    @property
+    def active_version(self) -> str:
+        """Active zkVyper version."""
+        return self._config["ZKVVM_ACTIVE_VERSION"]
+
+    @active_version.setter
+    def active_version(self, value: str) -> None:
+        version = SimpleSpec(value).select(self.remote_versions)
+        self._config["ZKVVM_ACTIVE_VERSION"] = str(version)
+
+    @property
+    def vyper_version(self) -> str:
+        """Vyper version to use with active zkVyper version."""
+        return self._config["ZKVVM_VYPER_VERSION"]
+
+    @vyper_version.setter
+    def vyper_version(self, value: str) -> None:
+        version = SimpleSpec(value).select(vvm.get_installable_vyper_versions())
+        self._config["ZKVVM_VYPER_VERSION"] = str(version)
 
     @functools.cached_property
     def _platform_id(self) -> str:
