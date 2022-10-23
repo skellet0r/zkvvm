@@ -27,12 +27,12 @@ class VersionManager:
     _ARM64 = ("aarch64_be", "aarch64", "armv8b", "armv8l")
     _DEFAULT_CONFIG = {
         "ZKVVM_CACHE_DIR": user_cache_dir(__name__),
-        "ZKVVM_LOG_DIR": user_log_dir(__name__),
+        "ZKVVM_LOG_FILE": os.path.join(user_log_dir(__name__), "zkvvm.log"),
     }
     _REMOTE_BASE_URL = "https://api.github.com/repos/matter-labs/zkvyper-bin/contents/"
 
     def __init__(
-        self, cache_dir: Optional[str] = None, log_dir: Optional[str] = None
+        self, cache_dir: Optional[str] = None, log_file: Optional[str] = None
     ) -> None:
         config = collections.ChainMap(os.environ, self._DEFAULT_CONFIG)  # type: ignore
 
@@ -40,7 +40,7 @@ class VersionManager:
         self._session = requests.Session()
 
         self.cache_dir = cache_dir or self.cache_dir
-        self.log_dir = log_dir or self.log_dir
+        self.log_file = log_file or self.log_file
 
         self.logger = logger.getChild(self.__class__.__name__)
 
@@ -78,17 +78,14 @@ class VersionManager:
             path.mkdir(parents=True)
 
     @property
-    def log_dir(self) -> str:
-        """Cache directory."""
-        return self._config["ZKVVM_LOG_DIR"]
+    def log_file(self) -> str:
+        """Log file."""
+        return self._config["ZKVVM_LOG_FILE"]
 
-    @log_dir.setter
-    def log_dir(self, value: str) -> None:
+    @log_file.setter
+    def log_file(self, value: str) -> None:
         path = pathlib.Path(value).expanduser()
-        self._config["ZKVVM_LOG_DIR"] = path.as_posix()
-
-        if not path.exists():
-            path.mkdir(parents=True)
+        self._config["ZKVVM_LOG_FILE"] = path.as_posix()
 
     @functools.cached_property
     def _platform_id(self) -> str:
