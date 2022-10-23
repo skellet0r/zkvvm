@@ -43,6 +43,12 @@ class Config(collections.UserDict):
         self.data[name] = value
 
 
+class BinaryVersion(Version):
+    def __init__(self, *args, location: str, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.location = location
+
+
 class VersionManager:
     """zkVyper Version Manager."""
 
@@ -55,22 +61,27 @@ class VersionManager:
         self._config = config
 
     @functools.cached_property
-    def remote_versions(self) -> Set[Version]:
+    def remote_versions(self) -> Set[BinaryVersion]:
         """Remote zkVyper binary versions compatible with the host system."""
         resp = self._session.get(self._REMOTE_BASE_URL + self._platform_id)
         resp.raise_for_status()
 
-        filenames = [file["name"] for file in resp.json() if file["type"] == "file"]
-        return {Version(filename.split("-")[-1][1:]) for filename in filenames}
+        versions = set()
+        for file in resp.json():
+            if file["type"] != file:
+                continue
+            version_string = file["name"].split("-")[-1][1:]
+            versions.add(BinaryVersion(version_string, location=file["download_url"]))
+        return versions
 
     @property
-    def local_versions(self) -> Set[Version]:
+    def local_versions(self) -> Set[BinaryVersion]:
         """Local zkVyper binary versions."""
         versions = set()
         for fp in self._config.cache_dir.iterdir():
             if not fp.is_file():
                 continue
-            versions.add(Version(fp.name.split("-")[-1]))
+            versions.add(BinaryVersion(fp.name.split("-")[-1], location=fp.as_uri()))
         return versions
 
     @functools.cached_property
