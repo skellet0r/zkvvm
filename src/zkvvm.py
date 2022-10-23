@@ -19,9 +19,13 @@ class VersionManager:
     _DEFAULT_CONFIG = {"ZKVVM_CACHE_DIR": user_cache_dir(__name__)}
     _REMOTE_BASE_URL = "https://api.github.com/repos/matter-labs/zkvyper-bin/contents/"
 
-    def __init__(self, **config) -> None:
+    def __init__(self, cache_dir: str) -> None:
+        config = collections.ChainMap(os.environ, self._DEFAULT_CONFIG)  # type: ignore
+
+        self._config = config.new_child()
         self._session = requests.Session()
-        self._config = collections.ChainMap(config, os.environ, self._DEFAULT_CONFIG)
+
+        self.cache_dir = cache_dir
 
     @functools.cached_property
     def remote_versions(self) -> Set[Version]:
@@ -31,6 +35,15 @@ class VersionManager:
 
         filenames = [file["name"] for file in resp.json() if file["type"] == "file"]
         return {Version(filename.split("-")[-1][1:]) for filename in filenames}
+
+    @property
+    def cache_dir(self) -> str:
+        """Cache directory."""
+        return self._config["ZKVVM_CACHE_DIR"]
+
+    @cache_dir.setter
+    def cache_dir(self, value: str) -> None:
+        self._config["ZKVVM_CACHE_DIR"] = value
 
     @functools.cached_property
     def _platform_id(self) -> str:
