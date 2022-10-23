@@ -4,7 +4,7 @@ import logging
 import os
 import pathlib
 import platform
-from typing import Optional, Set
+from typing import Any, Optional, Set
 
 import requests
 from appdirs import user_cache_dir, user_log_dir
@@ -15,6 +15,24 @@ logger = logging.getLogger(__name__)
 
 class PlatformError(Exception):
     ...
+
+
+class Config(collections.UserDict):
+    DEFAULTS = {
+        "cache_dir": pathlib.Path(user_cache_dir(__name__)),
+        "log_file": pathlib.Path(user_log_dir(__name__)).joinpath(__name__ + ".log"),
+    }
+
+    def __init__(self, **kwargs: Any) -> None:
+        env, prefix = {}, __name__ + "_"
+        for k, v in os.environ.items():
+            if not k.startswith(prefix.upper()):
+                continue
+            key = k.lower()[len(prefix) :]
+            env[key] = type(self.DEFAULTS[key])(v)
+
+        user = {k: type(self.DEFAULTS[k])(v) for k, v in kwargs.items()}
+        self.data = collections.ChainMap(user, env, self.DEFAULTS)  # type: ignore
 
 
 class Configuration:
