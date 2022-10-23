@@ -66,14 +66,12 @@ class VersionManager:
         if version in self.local_versions and not overwrite:
             return
 
-        self._logger.debug(
-            f"Installing zkVyper v{version!s} from {version.location!r}."
-        )
+        self._logger.info(f"Installing zkVyper v{version!s} from {version.location!r}.")
         resp = self._session.get(version.location, stream=True)
         fp: pathlib.Path = self._config["cache_dir"] / ("zkvyper-" + str(version))
         with fp.open("wb") as f:
             f.writelines(resp.iter_content())
-        self._logger.debug(f"Installation of v{version!s} finished.")
+        self._logger.info(f"Installation of v{version!s} finished.")
 
     def uninstall(self, version: BinaryVersion):
         try:
