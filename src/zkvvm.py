@@ -1,13 +1,16 @@
 import collections
 import functools
+import logging
 import os
 import pathlib
 import platform
 from typing import Optional, Set
 
 import requests
-from appdirs import user_cache_dir
+from appdirs import user_cache_dir, user_log_dir
 from semantic_version import Version
+
+logger = logging.getLogger(__name__)
 
 
 class PlatformError(Exception):
@@ -22,16 +25,24 @@ class VersionManager:
 
     _AMD64 = ("amd64", "x86_64", "i386", "i586", "i686")
     _ARM64 = ("aarch64_be", "aarch64", "armv8b", "armv8l")
-    _DEFAULT_CONFIG = {"ZKVVM_CACHE_DIR": user_cache_dir(__name__)}
+    _DEFAULT_CONFIG = {
+        "ZKVVM_CACHE_DIR": user_cache_dir(__name__),
+        "ZKVVM_LOG_DIR": user_log_dir(__name__),
+    }
     _REMOTE_BASE_URL = "https://api.github.com/repos/matter-labs/zkvyper-bin/contents/"
 
-    def __init__(self, cache_dir: Optional[str] = None) -> None:
+    def __init__(
+        self, cache_dir: Optional[str] = None, log_dir: Optional[str] = None
+    ) -> None:
         config = collections.ChainMap(os.environ, self._DEFAULT_CONFIG)  # type: ignore
 
         self._config = config.new_child()
         self._session = requests.Session()
 
         self.cache_dir = cache_dir or self.cache_dir
+        self.log_dir = log_dir or self.log_dir
+
+        self.logger = logger.getChild(self.__class__.__name__)
 
     @functools.cached_property
     def remote_versions(self) -> Set[Version]:
@@ -62,6 +73,19 @@ class VersionManager:
     def cache_dir(self, value: str) -> None:
         path = pathlib.Path(value).expanduser()
         self._config["ZKVVM_CACHE_DIR"] = path.as_posix()
+
+        if not path.exists():
+            path.mkdir(parents=True)
+
+    @property
+    def log_dir(self) -> str:
+        """Cache directory."""
+        return self._config["ZKVVM_LOG_DIR"]
+
+    @log_dir.setter
+    def log_dir(self, value: str) -> None:
+        path = pathlib.Path(value).expanduser()
+        self._config["ZKVVM_LOG_DIR"] = path.as_posix()
 
         if not path.exists():
             path.mkdir(parents=True)
