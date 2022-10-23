@@ -32,9 +32,10 @@ class VersionManager:
         self._session = requests.Session()
 
         if cache_dir:
-            self.cache_dir = pathlib.Path(cache_dir).expanduser().as_posix()
+            self.cache_dir = cache_dir
 
-        pathlib.Path(self.cache_dir).mkdir(parents=True, exist_ok=True)
+        if not pathlib.Path(self.cache_dir).exists():
+            pathlib.Path(self.cache_dir).mkdir(parents=True)
 
     @functools.cached_property
     def remote_versions(self) -> Set[Version]:
@@ -44,6 +45,12 @@ class VersionManager:
 
         filenames = [file["name"] for file in resp.json() if file["type"] == "file"]
         return {Version(filename.split("-")[-1][1:]) for filename in filenames}
+
+    @property
+    def local_versions(self) -> Set[Version]:
+        """Local zkVyper binary versions."""
+        cache_dir = pathlib.Path(self.cache_dir)
+        return set(Version(fp.name.split("-")[-1]) for fp in cache_dir.iterdir())
 
     @property
     def cache_dir(self) -> str:
