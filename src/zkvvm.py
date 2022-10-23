@@ -1,5 +1,6 @@
 import collections
 import functools
+import logging
 import os
 import pathlib
 import platform
@@ -9,6 +10,8 @@ from typing import Any, FrozenSet
 import requests
 from appdirs import user_cache_dir, user_log_dir
 from semantic_version import Version
+
+logger = logging.getLogger(__name__)
 
 
 class PlatformError(Exception):
@@ -55,6 +58,9 @@ class VersionManager:
         cache_dir: pathlib.Path = config["cache_dir"]
         if not cache_dir.exists():
             cache_dir.mkdir(parents=True, exist_ok=True)
+
+        self.logger = logger.getChild(self.__class__.__name__)
+        self.logger.addHandler(logging.FileHandler(config["log_file"]))
 
     def install(self, version: BinaryVersion, overwrite: bool = False):
         if version in self.local_versions and not overwrite:
