@@ -3,7 +3,7 @@ import functools
 import os
 import pathlib
 import platform
-from typing import Any, Set
+from typing import Any, FrozenSet
 
 import requests
 from appdirs import user_cache_dir, user_log_dir
@@ -65,21 +65,21 @@ class VersionManager:
             f.writelines(resp.iter_content())
 
     @functools.cached_property
-    def remote_versions(self) -> Set[BinaryVersion]:
+    def remote_versions(self) -> FrozenSet[BinaryVersion]:
         """Remote zkVyper binary versions compatible with the host system."""
         resp = self._session.get(self._REMOTE_BASE_URL + self._platform_id)
         resp.raise_for_status()
 
         versions = set()
         for file in resp.json():
-            if file["type"] != file:
+            if file["type"] != "file":
                 continue
             version_string = file["name"].split("-")[-1][1:]
             versions.add(BinaryVersion(version_string, location=file["download_url"]))
-        return versions
+        return frozenset(versions)
 
     @property
-    def local_versions(self) -> Set[BinaryVersion]:
+    def local_versions(self) -> FrozenSet[BinaryVersion]:
         """Local zkVyper binary versions."""
         versions = set()
         cache_dir: pathlib.Path = self._config["cache_dir"]
@@ -87,7 +87,7 @@ class VersionManager:
             if not fp.is_file():
                 continue
             versions.add(BinaryVersion(fp.name.split("-")[-1], location=fp.as_uri()))
-        return versions
+        return frozenset(versions)
 
     @functools.cached_property
     def _platform_id(self) -> str:
