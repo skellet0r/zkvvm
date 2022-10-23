@@ -105,7 +105,7 @@ class VersionManager:
 
         See `Stack Overflow <https://stackoverflow.com/a/45125525>`_.
         """
-        system, machine = platform.system(), platform.machine()
+        system, machine = platform.system(), platform.machine().lower()
         if system == "Linux" and machine in self._AMD64:
             return "linux-amd64"
         elif system == "Darwin" and machine in self._AMD64:
