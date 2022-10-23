@@ -7,7 +7,6 @@ import platform
 from typing import Optional, Set
 
 import requests
-import vvm
 from appdirs import user_cache_dir, user_log_dir
 from semantic_version import SimpleSpec, Version
 
@@ -18,22 +17,13 @@ class PlatformError(Exception):
     ...
 
 
-class VersionManager:
-    """zkVyper Version Manager.
-
-    :param str cache_dir: The user-specific cache directory.
-    :param str log_file: The runtime log file.
-    """
-
-    _AMD64 = ("amd64", "x86_64", "i386", "i586", "i686")
-    _ARM64 = ("aarch64_be", "aarch64", "armv8b", "armv8l")
+class Configuration:
     _DEFAULT_CONFIG = {
         "ZKVVM_CACHE_DIR": user_cache_dir(__name__),
         "ZKVVM_LOG_FILE": os.path.join(user_log_dir(__name__), "zkvvm.log"),
         "ZKVVM_ACTIVE_VERSION": ">=1.1.0",
         "ZKVVM_VYPER_VERSION": "^0.3.3",
     }
-    _REMOTE_BASE_URL = "https://api.github.com/repos/matter-labs/zkvyper-bin/contents/"
 
     def __init__(
         self,
@@ -43,36 +33,12 @@ class VersionManager:
         vyper_version: Optional[str] = None,
     ) -> None:
         config = collections.ChainMap(os.environ, self._DEFAULT_CONFIG)  # type: ignore
-
         self._config = config.new_child()
-        self._session = requests.Session()
 
         self.cache_dir = cache_dir or self.cache_dir
         self.log_file = log_file or self.log_file
         self.active_version = active_version or self.active_version
         self.vyper_version = vyper_version or self.vyper_version
-
-        self.logger = logger.getChild(self.__class__.__name__)
-
-    @functools.cached_property
-    def remote_versions(self) -> Set[Version]:
-        """Remote zkVyper binary versions compatible with the host system."""
-        resp = self._session.get(self._REMOTE_BASE_URL + self._platform_id)
-        resp.raise_for_status()
-
-        filenames = [file["name"] for file in resp.json() if file["type"] == "file"]
-        return {Version(filename.split("-")[-1][1:]) for filename in filenames}
-
-    @property
-    def local_versions(self) -> Set[Version]:
-        """Local zkVyper binary versions."""
-        cache_dir = pathlib.Path(self.cache_dir)
-        versions = set()
-        for fp in cache_dir.iterdir():
-            if not fp.is_file():
-                continue
-            versions.add(Version(fp.name.split("-")[-1]))
-        return versions
 
     @property
     def cache_dir(self) -> str:
@@ -104,8 +70,7 @@ class VersionManager:
 
     @active_version.setter
     def active_version(self, value: str) -> None:
-        version = SimpleSpec(value).select(self.remote_versions)
-        self._config["ZKVVM_ACTIVE_VERSION"] = str(version)
+        self._config["ZKVVM_ACTIVE_VERSION"] = str(SimpleSpec(value))
 
     @property
     def vyper_version(self) -> str:
@@ -114,8 +79,43 @@ class VersionManager:
 
     @vyper_version.setter
     def vyper_version(self, value: str) -> None:
-        version = SimpleSpec(value).select(vvm.get_installable_vyper_versions())
-        self._config["ZKVVM_VYPER_VERSION"] = str(version)
+        self._config["ZKVVM_VYPER_VERSION"] = str(SimpleSpec(value))
+
+
+class VersionManager:
+    """zkVyper Version Manager.
+
+    :param str cache_dir: The user-specific cache directory.
+    :param str log_file: The runtime log file.
+    """
+
+    _AMD64 = ("amd64", "x86_64", "i386", "i586", "i686")
+    _ARM64 = ("aarch64_be", "aarch64", "armv8b", "armv8l")
+    _REMOTE_BASE_URL = "https://api.github.com/repos/matter-labs/zkvyper-bin/contents/"
+
+    def __init__(self, config: Configuration) -> None:
+        self._session = requests.Session()
+        self._config = config
+
+    @functools.cached_property
+    def remote_versions(self) -> Set[Version]:
+        """Remote zkVyper binary versions compatible with the host system."""
+        resp = self._session.get(self._REMOTE_BASE_URL + self._platform_id)
+        resp.raise_for_status()
+
+        filenames = [file["name"] for file in resp.json() if file["type"] == "file"]
+        return {Version(filename.split("-")[-1][1:]) for filename in filenames}
+
+    @property
+    def local_versions(self) -> Set[Version]:
+        """Local zkVyper binary versions."""
+        cache_dir = pathlib.Path(self._config.cache_dir)
+        versions = set()
+        for fp in cache_dir.iterdir():
+            if not fp.is_file():
+                continue
+            versions.add(Version(fp.name.split("-")[-1]))
+        return versions
 
     @functools.cached_property
     def _platform_id(self) -> str:
