@@ -66,18 +66,27 @@ class VersionManager:
         if version in self.local_versions and not overwrite:
             return
 
+        self.logger.debug(f"Installing zkVyper v{version!s} from {version.location!r}.")
         resp = self._session.get(version.location, stream=True)
         fp: pathlib.Path = self._config["cache_dir"] / ("zkvyper-" + str(version))
         with fp.open("wb") as f:
             f.writelines(resp.iter_content())
+        self.logger.debug(f"Installation of v{version!s} finished.")
 
     def uninstall(self, version: BinaryVersion):
-        pathlib.Path(urllib.parse.urlparse(version.location).path).unlink()
+        try:
+            pathlib.Path(urllib.parse.urlparse(version.location).path).unlink()
+        except FileNotFoundError:
+            self.logger.warning(
+                f"zkVyper v{version!s} not found at {version.location!r}."
+            )
 
     @functools.cached_property
     def remote_versions(self) -> FrozenSet[BinaryVersion]:
         """Remote zkVyper binary versions compatible with the host system."""
-        resp = self._session.get(self._REMOTE_BASE_URL + self._platform_id)
+        remote_url = self._REMOTE_BASE_URL + self._platform_id
+        self.logger.debug(f"Fetching remote zkVyper versions from {remote_url!r}.")
+        resp = self._session.get(remote_url)
         resp.raise_for_status()
 
         versions = set()
@@ -86,6 +95,7 @@ class VersionManager:
                 continue
             version_string = file["name"].split("-")[-1][1:]
             versions.add(BinaryVersion(version_string, location=file["download_url"]))
+        self.logger.debug(f"Found {len(versions)} zkVyper versions.")
         return frozenset(versions)
 
     @property
