@@ -14,6 +14,11 @@ class PlatformError(Exception):
 
 
 class VersionManager:
+    """zkVyper Version Manager.
+
+    :param str cache_dir: The user-specific cache directory.
+    """
+
     _AMD64 = ("amd64", "x86_64", "i386", "i586", "i686")
     _ARM64 = ("aarch64_be", "aarch64", "armv8b", "armv8l")
     _DEFAULT_CONFIG = {"ZKVVM_CACHE_DIR": user_cache_dir(__name__)}
