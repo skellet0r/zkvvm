@@ -34,6 +34,15 @@ class Config(collections.UserDict):
         user = {k: type(self.DEFAULTS[k])(v) for k, v in kwargs.items()}
         self.data = collections.ChainMap(user, env, self.DEFAULTS)  # type: ignore
 
+    def __getattr__(self, name: str) -> Any:
+        try:
+            return self.data[name]
+        except KeyError:
+            raise AttributeError()
+
+    def __setattr__(self, name: str, value: Any) -> None:
+        self.data[name] = value
+
 
 class Configuration:
     _DEFAULT_CONFIG = {
