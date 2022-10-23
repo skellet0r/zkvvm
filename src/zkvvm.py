@@ -26,6 +26,11 @@ class Config(collections.UserDict):
         "log_file": pathlib.Path(user_log_dir(__name__)).joinpath(__name__ + ".log"),
         "verbosity": logging.ERROR,
     }
+    CONVERTERS = {
+        "cache_dir": pathlib.Path,
+        "log_file": pathlib.Path,
+        "verbosity": int,
+    }
 
     def __init__(self, **kwargs: Any) -> None:
         env, prefix = {}, __name__ + "_"
@@ -33,9 +38,9 @@ class Config(collections.UserDict):
             if not k.startswith(prefix.upper()):
                 continue
             key = k.lower()[len(prefix) :]
-            env[key] = type(self.DEFAULTS[key])(v)  # type: ignore
+            env[key] = self.CONVERTERS[key](v)
 
-        user = {k: type(self.DEFAULTS[k])(v) for k, v in kwargs.items()}  # type: ignore
+        user = {k: self.CONVERTERS[k](v) for k, v in kwargs.items()}
         self.data = collections.ChainMap(user, env, self.DEFAULTS)  # type: ignore
 
 
