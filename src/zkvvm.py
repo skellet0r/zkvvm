@@ -33,15 +33,6 @@ class Config(collections.UserDict):
         user = {k: type(self.DEFAULTS[k])(v) for k, v in kwargs.items()}
         self.data = collections.ChainMap(user, env, self.DEFAULTS)  # type: ignore
 
-    def __getattr__(self, name: str) -> Any:
-        try:
-            return self.data[name]
-        except KeyError:
-            raise AttributeError()
-
-    def __setattr__(self, name: str, value: Any) -> None:
-        self.data[name] = value
-
 
 class BinaryVersion(Version):
     def __init__(self, *args, location: str, **kwargs):
@@ -65,7 +56,7 @@ class VersionManager:
             return
 
         resp = self._session.get(version.location, stream=True)
-        fp: pathlib.Path = self._config.cache_dir / ("zkvyper-" + str(version))
+        fp: pathlib.Path = self._config["cache_dir"] / ("zkvyper-" + str(version))
         with fp.open("wb") as f:
             f.writelines(resp.iter_content())
 
@@ -87,7 +78,7 @@ class VersionManager:
     def local_versions(self) -> Set[BinaryVersion]:
         """Local zkVyper binary versions."""
         versions = set()
-        cache_dir: pathlib.Path = self._config.cache_dir
+        cache_dir: pathlib.Path = self._config["cache_dir"]
         for fp in cache_dir.iterdir():
             if not fp.is_file():
                 continue
