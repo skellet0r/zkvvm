@@ -1,16 +1,13 @@
 import collections
 import functools
-import logging
 import os
 import pathlib
 import platform
-from typing import Any, Optional, Set
+from typing import Any, Set
 
 import requests
 from appdirs import user_cache_dir, user_log_dir
-from semantic_version import SimpleSpec, Version
-
-logger = logging.getLogger(__name__)
+from semantic_version import Version
 
 
 class PlatformError(Exception):
@@ -18,6 +15,8 @@ class PlatformError(Exception):
 
 
 class Config(collections.UserDict):
+    """Configuration container with attribute access support."""
+
     DEFAULTS = {
         "cache_dir": pathlib.Path(user_cache_dir(__name__)),
         "log_file": pathlib.Path(user_log_dir(__name__)).joinpath(__name__ + ".log"),
@@ -44,83 +43,14 @@ class Config(collections.UserDict):
         self.data[name] = value
 
 
-class Configuration:
-    _DEFAULT_CONFIG = {
-        "ZKVVM_CACHE_DIR": user_cache_dir(__name__),
-        "ZKVVM_LOG_FILE": os.path.join(user_log_dir(__name__), "zkvvm.log"),
-        "ZKVVM_ACTIVE_VERSION": ">=1.1.0",
-        "ZKVVM_VYPER_VERSION": "^0.3.3",
-    }
-
-    def __init__(
-        self,
-        cache_dir: Optional[str] = None,
-        log_file: Optional[str] = None,
-        active_version: Optional[str] = None,
-        vyper_version: Optional[str] = None,
-    ) -> None:
-        config = collections.ChainMap(os.environ, self._DEFAULT_CONFIG)  # type: ignore
-        self._config = config.new_child()
-
-        self.cache_dir = cache_dir or self.cache_dir
-        self.log_file = log_file or self.log_file
-        self.active_version = active_version or self.active_version
-        self.vyper_version = vyper_version or self.vyper_version
-
-    @property
-    def cache_dir(self) -> str:
-        """Cache directory."""
-        return self._config["ZKVVM_CACHE_DIR"]
-
-    @cache_dir.setter
-    def cache_dir(self, value: str) -> None:
-        path = pathlib.Path(value).expanduser()
-        self._config["ZKVVM_CACHE_DIR"] = path.as_posix()
-
-        if not path.exists():
-            path.mkdir(parents=True)
-
-    @property
-    def log_file(self) -> str:
-        """Log file."""
-        return self._config["ZKVVM_LOG_FILE"]
-
-    @log_file.setter
-    def log_file(self, value: str) -> None:
-        path = pathlib.Path(value).expanduser()
-        self._config["ZKVVM_LOG_FILE"] = path.as_posix()
-
-    @property
-    def active_version(self) -> str:
-        """Active zkVyper version."""
-        return self._config["ZKVVM_ACTIVE_VERSION"]
-
-    @active_version.setter
-    def active_version(self, value: str) -> None:
-        self._config["ZKVVM_ACTIVE_VERSION"] = str(SimpleSpec(value))
-
-    @property
-    def vyper_version(self) -> str:
-        """Vyper version to use with active zkVyper version."""
-        return self._config["ZKVVM_VYPER_VERSION"]
-
-    @vyper_version.setter
-    def vyper_version(self, value: str) -> None:
-        self._config["ZKVVM_VYPER_VERSION"] = str(SimpleSpec(value))
-
-
 class VersionManager:
-    """zkVyper Version Manager.
-
-    :param str cache_dir: The user-specific cache directory.
-    :param str log_file: The runtime log file.
-    """
+    """zkVyper Version Manager."""
 
     _AMD64 = ("amd64", "x86_64", "i386", "i586", "i686")
     _ARM64 = ("aarch64_be", "aarch64", "armv8b", "armv8l")
     _REMOTE_BASE_URL = "https://api.github.com/repos/matter-labs/zkvyper-bin/contents/"
 
-    def __init__(self, config: Configuration) -> None:
+    def __init__(self, config: Config) -> None:
         self._session = requests.Session()
         self._config = config
 
@@ -136,9 +66,8 @@ class VersionManager:
     @property
     def local_versions(self) -> Set[Version]:
         """Local zkVyper binary versions."""
-        cache_dir = pathlib.Path(self._config.cache_dir)
         versions = set()
-        for fp in cache_dir.iterdir():
+        for fp in self._config.cache_dir.iterdir():
             if not fp.is_file():
                 continue
             versions.add(Version(fp.name.split("-")[-1]))
