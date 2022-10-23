@@ -31,11 +31,7 @@ class VersionManager:
         self._config = config.new_child()
         self._session = requests.Session()
 
-        if cache_dir:
-            self.cache_dir = cache_dir
-
-        if not pathlib.Path(self.cache_dir).exists():
-            pathlib.Path(self.cache_dir).mkdir(parents=True)
+        self.cache_dir = cache_dir or self.cache_dir
 
     @functools.cached_property
     def remote_versions(self) -> Set[Version]:
@@ -62,7 +58,8 @@ class VersionManager:
         path = pathlib.Path(value).expanduser()
         self._config["ZKVVM_CACHE_DIR"] = path.as_posix()
 
-        path.mkdir(parents=True, exist_ok=True)
+        if not path.exists():
+            path.mkdir(parents=True)
 
     @functools.cached_property
     def _platform_id(self) -> str:
