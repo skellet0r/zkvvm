@@ -51,6 +51,10 @@ class VersionManager:
         self._session = requests.Session()
         self._config = config
 
+        cache_dir: pathlib.Path = config["cache_dir"]
+        if not cache_dir.exists():
+            cache_dir.mkdir(parents=True, exist_ok=True)
+
     def install(self, version: BinaryVersion, overwrite: bool = False):
         if version in self.local_versions and not overwrite:
             return
