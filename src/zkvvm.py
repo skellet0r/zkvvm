@@ -60,6 +60,15 @@ class VersionManager:
         self._session = requests.Session()
         self._config = config
 
+    def install(self, version: BinaryVersion, overwrite: bool = False):
+        if version in self.local_versions and not overwrite:
+            return
+
+        resp = self._session.get(version.location, stream=True)
+        fp: pathlib.Path = self._config.cache_dir / ("zkvyper-" + str(version))
+        with fp.open("wb") as f:
+            f.writelines(resp.iter_content())
+
     @functools.cached_property
     def remote_versions(self) -> Set[BinaryVersion]:
         """Remote zkVyper binary versions compatible with the host system."""
@@ -78,7 +87,8 @@ class VersionManager:
     def local_versions(self) -> Set[BinaryVersion]:
         """Local zkVyper binary versions."""
         versions = set()
-        for fp in self._config.cache_dir.iterdir():
+        cache_dir: pathlib.Path = self._config.cache_dir
+        for fp in cache_dir.iterdir():
             if not fp.is_file():
                 continue
             versions.add(BinaryVersion(fp.name.split("-")[-1], location=fp.as_uri()))
