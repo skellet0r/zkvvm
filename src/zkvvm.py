@@ -3,6 +3,7 @@ import functools
 import os
 import pathlib
 import platform
+import urllib.parse
 from typing import Any, FrozenSet
 
 import requests
@@ -63,6 +64,9 @@ class VersionManager:
         fp: pathlib.Path = self._config["cache_dir"] / ("zkvyper-" + str(version))
         with fp.open("wb") as f:
             f.writelines(resp.iter_content())
+
+    def uninstall(self, version: BinaryVersion):
+        pathlib.Path(urllib.parse.urlparse(version.location).path).unlink()
 
     @functools.cached_property
     def remote_versions(self) -> FrozenSet[BinaryVersion]:
