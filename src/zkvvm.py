@@ -1,8 +1,9 @@
 import collections
 import functools
 import os
+import pathlib
 import platform
-from typing import Set
+from typing import Optional, Set
 
 import requests
 from appdirs import user_cache_dir
@@ -24,13 +25,16 @@ class VersionManager:
     _DEFAULT_CONFIG = {"ZKVVM_CACHE_DIR": user_cache_dir(__name__)}
     _REMOTE_BASE_URL = "https://api.github.com/repos/matter-labs/zkvyper-bin/contents/"
 
-    def __init__(self, cache_dir: str) -> None:
+    def __init__(self, cache_dir: Optional[str] = None) -> None:
         config = collections.ChainMap(os.environ, self._DEFAULT_CONFIG)  # type: ignore
 
         self._config = config.new_child()
         self._session = requests.Session()
 
-        self.cache_dir = cache_dir
+        if cache_dir:
+            self.cache_dir = pathlib.Path(cache_dir).expanduser().as_posix()
+
+        pathlib.Path(self.cache_dir).mkdir(parents=True, exist_ok=True)
 
     @functools.cached_property
     def remote_versions(self) -> Set[Version]:
