@@ -20,13 +20,13 @@ class VersionManager:
     _REMOTE_BASE_URL = "https://api.github.com/repos/matter-labs/zkvyper-bin/contents/"
 
     def __init__(self, **config) -> None:
-        self.session = requests.Session()
+        self._session = requests.Session()
         self._config = collections.ChainMap(config, os.environ, self._DEFAULT_CONFIG)
 
     @functools.cached_property
     def remote_versions(self) -> Set[Version]:
         """Remote zkVyper binary versions compatible with the host system."""
-        resp = self.session.get(self._REMOTE_BASE_URL + self._platform_id)
+        resp = self._session.get(self._REMOTE_BASE_URL + self._platform_id)
         resp.raise_for_status()
 
         filenames = [file["name"] for file in resp.json() if file["type"] == "file"]
