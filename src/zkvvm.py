@@ -52,7 +52,10 @@ class VersionManager:
 
     @cache_dir.setter
     def cache_dir(self, value: str) -> None:
-        self._config["ZKVVM_CACHE_DIR"] = value
+        path = pathlib.Path(value).expanduser()
+        self._config["ZKVVM_CACHE_DIR"] = path.as_posix()
+
+        path.mkdir(parents=True, exist_ok=True)
 
     @functools.cached_property
     def _platform_id(self) -> str:
