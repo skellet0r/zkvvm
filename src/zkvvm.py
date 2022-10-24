@@ -264,6 +264,12 @@ def main():
         default=config["vyper_version"],
         help=f"Default: {config['vyper_version']!s}",
     )
+    parser.add_argument(
+        "--active-version",
+        help="zkVyper compiler version to use",
+        default=config["active_version"],
+        type=Version,
+    )
 
     subparsers = parser.add_subparsers(title="commands", dest="command")
 
@@ -278,12 +284,16 @@ def main():
     uninstall.add_argument("version", help="Version to uninstall", type=Version)
     uninstall.add_argument("-y", action="store_const", const=True, default=False)
 
+    compile = subparsers.add_parser("compile", help="Compile contract(s)")
+    compile.add_argument("files", action="append", type=pathlib.Path)
+
     args = parser.parse_args()
 
     config["cache_dir"] = args.cache_dir
     config["log_file"] = args.log_file
     config["verbosity"] -= args.v * 10
     config["vyper_version"] = args.vyper_version
+    config["active_version"] = args.active_version
     vm = VersionManager(config)
 
     if args.command is None:
@@ -309,6 +319,8 @@ def main():
             vm.uninstall(version)
         elif version is None:
             print("Version not found locally")
+    elif args.command == "compile":
+        print(json.dumps(vm.compile(args.files)))
 
 
 if __name__ == "__main__":
