@@ -179,11 +179,22 @@ def main():
     parser = argparse.ArgumentParser("zkvvm", description="zkVyper Version Manager")
     subparsers = parser.add_subparsers(title="commands", dest="command")
 
+    subparsers.add_parser("ls", help="List available local versions")
     subparsers.add_parser("ls-remote", help="List available remote versions")
     args = parser.parse_args()
 
     vm = VersionManager(Config())
-    if args.command == "ls-remote":
+    if args.command == "ls":
+        if vm.local_versions:
+            print(
+                *map(
+                    str,
+                ),
+                sep="\n",
+            )
+        else:
+            print("No local versions found.")
+    elif args.command == "ls-remote":
         print(*map(str, vm.remote_versions), sep="\n")
 
 
