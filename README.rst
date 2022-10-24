@@ -39,7 +39,15 @@ Usage
 
     .. code-block:: python
 
-        from zkvvm import Config, VersionManager
+        import zkvvm
 
-        zkvyper = VersionManager(Config())
-        combined_json = zkvyper.compile(["tmp/Foo.vy"])
+        output = zkvvm.compile(["tmp/Foo.vy"])
+
+        src = """# @version 0.3.3
+
+        @view
+        @external
+        def foo(_a: uint256) -> uint256:
+            return _a
+        """
+        output = zkvvm.compile_source(src, zk_version="1.1.1", vyper_version="0.3.3")
