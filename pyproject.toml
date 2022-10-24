@@ -6,6 +6,9 @@ authors = ["Edward Amor <edward.amor3@gmail.com>"]
 license = "MIT"
 readme = "README.rst"
 
+[tool.poetry.scripts]
+zkvvm = "zkvvm:main"
+
 [tool.poetry.dependencies]
 python = "^3.8"
 vvm = "^0.1.0"

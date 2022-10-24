@@ -1,3 +1,4 @@
+import argparse
 import collections
 import functools
 import logging
@@ -41,7 +42,11 @@ class Config(collections.UserDict):
             key = k.lower()[len(prefix) :]
             env[key] = self.CONVERTERS[key](v)  # type: ignore
 
-        user = {k: self.CONVERTERS[k](v) for k, v in kwargs.items()}  # type: ignore
+        user = {
+            k: self.CONVERTERS[k](v)  # type: ignore
+            for k, v in kwargs.items()
+            if v is not None
+        }
         self.data = collections.ChainMap(user, env, self.DEFAULTS)  # type: ignore
 
 
@@ -62,9 +67,9 @@ class VersionManager:
         self._session = requests.Session()
         self._config = config
 
-        cache_dir: pathlib.Path = config["cache_dir"]
-        if not cache_dir.exists():
-            cache_dir.mkdir(parents=True, exist_ok=True)
+        log_file: pathlib.Path = config["log_file"]
+        if not log_file.exists():
+            log_file.parent.mkdir(parents=True)
 
         self._logger = self._get_logger()
 
@@ -167,3 +172,20 @@ class VersionManager:
         elif system == "Darwin" and machine in self._AMD64:
             return "macosx-arm64"
         raise PlatformError()
+
+
+def main():
+    # top-level parser
+    parser = argparse.ArgumentParser("zkvvm", description="zkVyper Version Manager")
+    subparsers = parser.add_subparsers(title="commands", dest="command")
+
+    subparsers.add_parser("ls-remote", help="List available remote versions")
+    args = parser.parse_args()
+
+    vm = VersionManager(Config())
+    if args.command == "ls-remote":
+        print(*map(str, vm.remote_versions), sep="\n")
+
+
+if __name__ == "__main__":
+    main()
