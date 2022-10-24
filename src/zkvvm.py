@@ -190,6 +190,7 @@ def main():
 
     install = subparsers.add_parser("install", help="Install a remote version")
     install.add_argument("version", help="Version to install", type=SimpleSpec)
+    install.add_argument("--overwrite", action="store_const", const=True, default=False)
 
     args = parser.parse_args()
 
@@ -208,7 +209,9 @@ def main():
     elif args.command == "install":
         version = args.version.select(vm.remote_versions)
         if version:
-            vm.install(version)
+            vm.install(version, args.overwrite)
+        else:
+            print("Version not available")
 
 
 if __name__ == "__main__":
