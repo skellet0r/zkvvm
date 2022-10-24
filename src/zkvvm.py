@@ -87,7 +87,9 @@ class VersionManager:
             return
         show_progress = show_progress or self._config["verbosity"] <= logging.INFO
 
-        self._logger.info(f"Installing zkVyper v{version!s} from {version.location!r}.")
+        self._logger.debug(
+            f"Installing zkVyper v{version!s} from {version.location!r}."
+        )
         resp = self._session.get(version.location, stream=show_progress)
 
         fp: pathlib.Path = self._config["cache_dir"] / ("zkvyper-" + str(version))
@@ -95,7 +97,10 @@ class VersionManager:
         try:
             if show_progress:
                 with tqdm.tqdm(
-                    total=int(resp.headers["content-length"]), unit="b", unit_scale=True
+                    total=int(resp.headers["content-length"]),
+                    unit="b",
+                    unit_scale=True,
+                    desc=f"zkVyper v{version!s}",
                 ) as prog:
                     for chunk in resp.iter_content():
                         f.write(chunk)
@@ -110,7 +115,8 @@ class VersionManager:
             raise
         else:
             f.close()
-            self._logger.info(f"Installation of v{version!s} finished.")
+            fp.chmod(0o755)
+            self._logger.debug(f"Installation of v{version!s} finished.")
 
     def uninstall(self, version: BinaryVersion):
         try:
