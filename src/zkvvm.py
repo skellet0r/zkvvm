@@ -91,7 +91,8 @@ class VersionManager:
         except BaseException as exc:
             f.close()
             fp.unlink()
-            self._logger.error(f"Installation of v{version!s} failed.", exc_info=exc)
+            self._logger.error(f"Installation of v{version!s} failed.")
+            self._logger.debug("", exc_info=exc)
             raise
         else:
             f.close()
