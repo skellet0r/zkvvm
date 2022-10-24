@@ -5,6 +5,7 @@ import logging
 import os
 import pathlib
 import platform
+import subprocess
 import urllib.parse
 from typing import Any, FrozenSet
 
@@ -113,10 +114,25 @@ class VersionManager:
             self._logger.error(f"Installation of v{version!s} failed.")
             self._logger.debug("", exc_info=exc)
             raise
-        else:
-            f.close()
-            fp.chmod(0o755)
-            self._logger.debug(f"Installation of v{version!s} finished.")
+
+        f.close()
+        fp.chmod(0o755)
+        # check binary is correct
+        ret = subprocess.run([fp.as_posix(), "--version"], capture_output=True)
+        if ret.returncode != 0:
+            logger.error(
+                "Downloaded binary would not execute, or returned unexpected output."
+            )
+            fp.unlink()
+            raise Exception()
+        elif str(version) not in ret.stdout.decode():
+            logger.error(
+                f"Attempted to install zkVyper v{version}, received something else."
+            )
+            fp.unlink()
+            raise Exception()
+
+        self._logger.debug(f"Installation of v{version!s} finished.")
 
     def uninstall(self, version: BinaryVersion):
         try:
