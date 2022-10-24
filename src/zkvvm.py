@@ -24,12 +24,14 @@ class Config(collections.UserDict):
     """Configuration container with attribute access support."""
 
     DEFAULTS = {
+        "active_version": SimpleSpec(">=1.1.0"),
         "cache_dir": pathlib.Path(user_cache_dir(__name__)),
         "log_file": pathlib.Path(user_log_dir(__name__)).joinpath(__name__ + ".log"),
         "verbosity": logging.WARNING,
         "vyper_version": SimpleSpec("0.3.3"),
     }
     CONVERTERS = {
+        "active_version": SimpleSpec,
         "cache_dir": lambda x: pathlib.Path(x).absolute(),
         "log_file": lambda x: pathlib.Path(x).absolute(),
         "verbosity": int,
