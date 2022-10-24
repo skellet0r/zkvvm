@@ -179,8 +179,18 @@ def main():
 
     # top-level parser
     parser = argparse.ArgumentParser("zkvvm", description="zkVyper Version Manager")
-    parser.add_argument("--cache-dir", type=pathlib.Path, default=config["cache_dir"])
-    parser.add_argument("--log-file", type=pathlib.Path, default=config["log_file"])
+    parser.add_argument(
+        "--cache-dir",
+        type=pathlib.Path,
+        default=config["cache_dir"],
+        help=f"Default: {config['cache_dir']!s}",
+    )
+    parser.add_argument(
+        "--log-file",
+        type=pathlib.Path,
+        default=config["log_file"],
+        help=f"Default: {config['log_file']!s}",
+    )
     parser.add_argument("-v", action="count", default=0)
 
     subparsers = parser.add_subparsers(title="commands", dest="command")
@@ -191,6 +201,10 @@ def main():
     install = subparsers.add_parser("install", help="Install a remote version")
     install.add_argument("version", help="Version to install", type=SimpleSpec)
     install.add_argument("--overwrite", action="store_const", const=True, default=False)
+
+    uninstall = subparsers.add_parser("uninstall", help="Uninstall a local version")
+    uninstall.add_argument("version", help="Version to uninstall", type=Version)
+    uninstall.add_argument("-y", action="store_const", const=True, default=False)
 
     args = parser.parse_args()
 
@@ -212,6 +226,14 @@ def main():
             vm.install(version, args.overwrite)
         else:
             print("Version not available")
+    elif args.command == "uninstall":
+        version = next(
+            (version for version in vm.local_versions if version == args.version), None
+        )
+        if version and (args.y or input("Confirm [y/N]: ").lower().strip() == "y"):
+            vm.uninstall(version)
+        elif version is None:
+            print("Version not found locally")
 
 
 if __name__ == "__main__":
