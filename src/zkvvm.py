@@ -8,6 +8,7 @@ import urllib.parse
 from typing import Any, FrozenSet
 
 import requests
+import tqdm
 from appdirs import user_cache_dir, user_log_dir
 from semantic_version import Version
 
@@ -70,12 +71,23 @@ class VersionManager:
     def install(self, version: BinaryVersion, overwrite: bool = False):
         if version in self.local_versions and not overwrite:
             return
+        show_progress = self._config["verbosity"] <= logging.INFO
 
         self._logger.info(f"Installing zkVyper v{version!s} from {version.location!r}.")
-        resp = self._session.get(version.location, stream=True)
+        resp = self._session.get(version.location, stream=show_progress)
+
         fp: pathlib.Path = self._config["cache_dir"] / ("zkvyper-" + str(version))
         with fp.open("wb") as f:
-            f.writelines(resp.iter_content())
+            if show_progress:
+                with tqdm.tqdm(
+                    total=int(resp.headers["content-length"]), unit="b", unit_scale=True
+                ) as prog:
+                    for chunk in resp.iter_content():
+                        f.write(chunk)
+                        prog.update(len(chunk))
+            else:
+                f.write(resp.content)
+
         self._logger.info(f"Installation of v{version!s} finished.")
 
     def uninstall(self, version: BinaryVersion):
