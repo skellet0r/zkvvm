@@ -7,8 +7,9 @@ import os
 import pathlib
 import platform
 import subprocess
+import tempfile
 import urllib.parse
-from typing import Any, FrozenSet, List, Union
+from typing import Any, Dict, FrozenSet, List, Union
 
 import requests
 import tqdm
@@ -85,8 +86,10 @@ class VersionManager:
         needs_vyper = (
             self._config["vyper_version"] not in vvm.get_installed_vyper_versions()
         )
+        if needs_vyper:
+            vvm.install_vyper(self._config["vyper_version"])
         zkvyper = self._config["active_version"].select(self.local_versions)
-        if needs_vyper or not zkvyper:
+        if not zkvyper:
             selected = self._config["active_version"].select(self.remote_versions)
             if not selected:
                 version = self._config["active_version"]
@@ -238,6 +241,17 @@ class VersionManager:
         elif system == "Darwin" and machine in self._AMD64:
             return "macosx-arm64"
         raise PlatformError()
+
+
+def compile(srcfiles: List[Union[str, pathlib.Path]], **kwargs: Any) -> Dict[str, Dict]:
+    return VersionManager(Config(**kwargs)).compile(srcfiles)
+
+
+def compile_source(src: str, **kwargs) -> Dict:
+    with tempfile.NamedTemporaryFile(suffix=".vy") as f:
+        f.write(src.encode())
+        f.flush()
+        return compile([f.name], **kwargs)
 
 
 def main():
