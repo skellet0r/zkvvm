@@ -77,10 +77,15 @@ class VersionManager:
 
         self._logger = self._get_logger()
 
-    def install(self, version: BinaryVersion, overwrite: bool = False):
+    def install(
+        self,
+        version: BinaryVersion,
+        overwrite: bool = False,
+        show_progress: bool = False,
+    ):
         if version in self.local_versions and not overwrite:
             return
-        show_progress = self._config["verbosity"] <= logging.INFO
+        show_progress = show_progress or self._config["verbosity"] <= logging.INFO
 
         self._logger.info(f"Installing zkVyper v{version!s} from {version.location!r}.")
         resp = self._session.get(version.location, stream=show_progress)
