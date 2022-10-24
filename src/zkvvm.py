@@ -77,7 +77,8 @@ class VersionManager:
         resp = self._session.get(version.location, stream=show_progress)
 
         fp: pathlib.Path = self._config["cache_dir"] / ("zkvyper-" + str(version))
-        with fp.open("wb") as f:
+        f = fp.open("wb")
+        try:
             if show_progress:
                 with tqdm.tqdm(
                     total=int(resp.headers["content-length"]), unit="b", unit_scale=True
@@ -87,8 +88,14 @@ class VersionManager:
                         prog.update(len(chunk))
             else:
                 f.write(resp.content)
-
-        self._logger.info(f"Installation of v{version!s} finished.")
+        except BaseException as exc:
+            f.close()
+            fp.unlink()
+            self._logger.error(f"Installation of v{version!s} failed.", exc_info=exc)
+            raise
+        else:
+            f.close()
+            self._logger.info(f"Installation of v{version!s} finished.")
 
     def uninstall(self, version: BinaryVersion):
         try:
