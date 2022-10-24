@@ -1,17 +1,19 @@
 import argparse
 import collections
 import functools
+import json
 import logging
 import os
 import pathlib
 import platform
 import subprocess
 import urllib.parse
-from typing import Any, FrozenSet
+from typing import Any, FrozenSet, List, Union
 
 import requests
 import tqdm
 import vvm
+import vvm.install
 from appdirs import user_cache_dir, user_log_dir
 from semantic_version import SimpleSpec, Version
 
@@ -78,6 +80,32 @@ class VersionManager:
             log_file.parent.mkdir(parents=True)
 
         self._logger = self._get_logger()
+
+    def compile(self, files: List[Union[str, pathlib.Path]]):
+        needs_vyper = (
+            self._config["vyper_version"] not in vvm.get_installed_vyper_versions()
+        )
+        zkvyper = self._config["active_version"].select(self.local_versions)
+        if needs_vyper or not zkvyper:
+            selected = self._config["active_version"].select(self.remote_versions)
+            if not selected:
+                version = self._config["active_version"]
+                self._logger.error(
+                    f"zkVyper version meeting constraints not available: {version!s}"
+                )
+                raise Exception()
+
+            self.install(selected)
+            zkvyper = self._config["active_version"].select(self.local_versions)
+        zkvyper = pathlib.Path(urllib.parse.urlparse(zkvyper.location).path)
+
+        vyper = vvm.install.get_executable(self._config["vyper_version"])
+        ret = subprocess.run(
+            [zkvyper, "--vyper", vyper, "-f", "combined_json", *files],
+            capture_output=True,
+        )
+
+        return json.loads(ret.stdout.decode().strip())
 
     def install(
         self,
