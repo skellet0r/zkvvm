@@ -28,8 +28,8 @@ class Config(collections.UserDict):
         "verbosity": logging.ERROR,
     }
     CONVERTERS = {
-        "cache_dir": pathlib.Path,
-        "log_file": pathlib.Path,
+        "cache_dir": lambda x: pathlib.Path(x).absolute(),
+        "log_file": lambda x: pathlib.Path(x).absolute(),
         "verbosity": int,
     }
 
@@ -39,9 +39,9 @@ class Config(collections.UserDict):
             if not k.startswith(prefix.upper()):
                 continue
             key = k.lower()[len(prefix) :]
-            env[key] = self.CONVERTERS[key](v)
+            env[key] = self.CONVERTERS[key](v)  # type: ignore
 
-        user = {k: self.CONVERTERS[k](v) for k, v in kwargs.items()}
+        user = {k: self.CONVERTERS[k](v) for k, v in kwargs.items()}  # type: ignore
         self.data = collections.ChainMap(user, env, self.DEFAULTS)  # type: ignore
 
 
