@@ -213,7 +213,9 @@ def main():
     config["verbosity"] -= args.v * 10
     vm = VersionManager(config)
 
-    if args.command == "ls":
+    if args.command is None:
+        parser.print_help()
+    elif args.command == "ls":
         if vm.local_versions:
             print(*[str(v) for v in vm.local_versions], sep="\n")
         else:
