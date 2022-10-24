@@ -27,11 +27,13 @@ class Config(collections.UserDict):
         "cache_dir": pathlib.Path(user_cache_dir(__name__)),
         "log_file": pathlib.Path(user_log_dir(__name__)).joinpath(__name__ + ".log"),
         "verbosity": logging.WARNING,
+        "vyper_version": SimpleSpec("0.3.3"),
     }
     CONVERTERS = {
         "cache_dir": lambda x: pathlib.Path(x).absolute(),
         "log_file": lambda x: pathlib.Path(x).absolute(),
         "verbosity": int,
+        "vyper_version": SimpleSpec,
     }
 
     def __init__(self, **kwargs: Any) -> None:
@@ -217,11 +219,11 @@ def main():
         parser.print_help()
     elif args.command == "ls":
         if vm.local_versions:
-            print(*[str(v) for v in vm.local_versions], sep="\n")
+            print(*[str(v) for v in sorted(vm.local_versions, reverse=True)], sep="\n")
         else:
             print("No local versions found.")
     elif args.command == "ls-remote":
-        print(*map(str, vm.remote_versions), sep="\n")
+        print(*map(str, sorted(vm.remote_versions, reverse=True)), sep="\n")
     elif args.command == "install":
         version = args.version.select(vm.remote_versions)
         if version:
