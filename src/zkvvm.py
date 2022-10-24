@@ -29,14 +29,14 @@ class Config(collections.UserDict):
     """Configuration container with attribute access support."""
 
     DEFAULTS = {
-        "active_version": SimpleSpec(">=1.1.0"),
+        "zk_version": SimpleSpec(">=1.1.0"),
         "cache_dir": pathlib.Path(user_cache_dir(__name__)),
         "log_file": pathlib.Path(user_log_dir(__name__)).joinpath(__name__ + ".log"),
         "verbosity": logging.WARNING,
         "vyper_version": Version("0.3.3"),
     }
     CONVERTERS = {
-        "active_version": SimpleSpec,
+        "zk_version": SimpleSpec,
         "cache_dir": lambda x: pathlib.Path(x).absolute(),
         "log_file": lambda x: pathlib.Path(x).absolute(),
         "verbosity": int,
@@ -88,18 +88,18 @@ class VersionManager:
         )
         if needs_vyper:
             vvm.install_vyper(self._config["vyper_version"])
-        zkvyper = self._config["active_version"].select(self.local_versions)
+        zkvyper = self._config["zk_version"].select(self.local_versions)
         if not zkvyper:
-            selected = self._config["active_version"].select(self.remote_versions)
+            selected = self._config["zk_version"].select(self.remote_versions)
             if not selected:
-                version = self._config["active_version"]
+                version = self._config["zk_version"]
                 self._logger.error(
                     f"zkVyper version meeting constraints not available: {version!s}"
                 )
                 raise Exception()
 
             self.install(selected)
-            zkvyper = self._config["active_version"].select(self.local_versions)
+            zkvyper = self._config["zk_version"].select(self.local_versions)
         zkvyper = pathlib.Path(urllib.parse.urlparse(zkvyper.location).path)
 
         vyper = vvm.install.get_executable(self._config["vyper_version"])
@@ -279,9 +279,9 @@ def main():
         help=f"Default: {config['vyper_version']!s}",
     )
     parser.add_argument(
-        "--active-version",
+        "--zk-version",
         help="zkVyper compiler version to use",
-        default=config["active_version"],
+        default=config["zk_version"],
         type=Version,
     )
     parser.add_argument("--version", action="version", version="%(prog)s 0.1.0")
@@ -308,7 +308,7 @@ def main():
     config["log_file"] = args.log_file
     config["verbosity"] -= args.v * 10
     config["vyper_version"] = args.vyper_version
-    config["active_version"] = args.active_version
+    config["zk_version"] = args.zk_version
     vm = VersionManager(config)
 
     if args.command is None:
