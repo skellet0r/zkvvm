@@ -11,6 +11,7 @@ from typing import Any, FrozenSet
 
 import requests
 import tqdm
+import vvm
 from appdirs import user_cache_dir, user_log_dir
 from semantic_version import SimpleSpec, Version
 
@@ -29,14 +30,14 @@ class Config(collections.UserDict):
         "cache_dir": pathlib.Path(user_cache_dir(__name__)),
         "log_file": pathlib.Path(user_log_dir(__name__)).joinpath(__name__ + ".log"),
         "verbosity": logging.WARNING,
-        "vyper_version": SimpleSpec("0.3.3"),
+        "vyper_version": Version("0.3.3"),
     }
     CONVERTERS = {
         "active_version": SimpleSpec,
         "cache_dir": lambda x: pathlib.Path(x).absolute(),
         "log_file": lambda x: pathlib.Path(x).absolute(),
         "verbosity": int,
-        "vyper_version": SimpleSpec,
+        "vyper_version": Version,
     }
 
     def __init__(self, **kwargs: Any) -> None:
@@ -84,9 +85,15 @@ class VersionManager:
         overwrite: bool = False,
         show_progress: bool = False,
     ):
+        show_progress = show_progress or self._config["verbosity"] <= logging.INFO
+        vyper_version = self._config["vyper_version"]
+        if vyper_version not in vvm.get_installed_vyper_versions():
+            self._logger.info(f"Attempting to install vyper version {vyper_version!s}")
+            vvm.install_vyper(vyper_version, show_progress)
+            self._logger.info(f"Vyper version v{vyper_version!s} installed.")
+
         if version in self.local_versions and not overwrite:
             return
-        show_progress = show_progress or self._config["verbosity"] <= logging.INFO
 
         self._logger.debug(
             f"Installing zkVyper v{version!s} from {version.location!r}."
@@ -222,7 +229,13 @@ def main():
         default=config["log_file"],
         help=f"Default: {config['log_file']!s}",
     )
-    parser.add_argument("-v", action="count", default=0)
+    parser.add_argument("-v", action="count", default=0, help="Verbosity")
+    parser.add_argument(
+        "--vyper-version",
+        type=Version,
+        default=config["vyper_version"],
+        help=f"Default: {config['vyper_version']!s}",
+    )
 
     subparsers = parser.add_subparsers(title="commands", dest="command")
 
@@ -242,6 +255,7 @@ def main():
     config["cache_dir"] = args.cache_dir
     config["log_file"] = args.log_file
     config["verbosity"] -= args.v * 10
+    config["vyper_version"] = args.vyper_version
     vm = VersionManager(config)
 
     if args.command is None:
