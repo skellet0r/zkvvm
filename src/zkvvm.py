@@ -26,7 +26,7 @@ class Config(collections.UserDict):
     DEFAULTS = {
         "cache_dir": pathlib.Path(user_cache_dir(__name__)),
         "log_file": pathlib.Path(user_log_dir(__name__)).joinpath(__name__ + ".log"),
-        "verbosity": logging.ERROR,
+        "verbosity": logging.WARNING,
     }
     CONVERTERS = {
         "cache_dir": lambda x: pathlib.Path(x).absolute(),
@@ -175,8 +175,14 @@ class VersionManager:
 
 
 def main():
+    config = Config()
+
     # top-level parser
     parser = argparse.ArgumentParser("zkvvm", description="zkVyper Version Manager")
+    parser.add_argument("--cache-dir", type=pathlib.Path, default=config["cache_dir"])
+    parser.add_argument("--log-file", type=pathlib.Path, default=config["log_file"])
+    parser.add_argument("-v", action="count", default=0)
+
     subparsers = parser.add_subparsers(title="commands", dest="command")
 
     subparsers.add_parser("ls", help="List available local versions")
@@ -186,7 +192,11 @@ def main():
     install.add_argument("version", help="Version to install", type=SimpleSpec)
 
     args = parser.parse_args()
-    vm = VersionManager(Config())
+
+    config["cache_dir"] = args.cache_dir
+    config["log_file"] = args.log_file
+    config["verbosity"] -= args.v * 10
+    vm = VersionManager(config)
 
     if args.command == "ls":
         if vm.local_versions:
