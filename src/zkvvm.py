@@ -11,7 +11,7 @@ from typing import Any, FrozenSet
 import requests
 import tqdm
 from appdirs import user_cache_dir, user_log_dir
-from semantic_version import Version
+from semantic_version import SimpleSpec, Version
 
 logger = logging.getLogger(__name__)
 
@@ -181,21 +181,24 @@ def main():
 
     subparsers.add_parser("ls", help="List available local versions")
     subparsers.add_parser("ls-remote", help="List available remote versions")
-    args = parser.parse_args()
 
+    install = subparsers.add_parser("install", help="Install a remote version")
+    install.add_argument("version", help="Version to install", type=SimpleSpec)
+
+    args = parser.parse_args()
     vm = VersionManager(Config())
+
     if args.command == "ls":
         if vm.local_versions:
-            print(
-                *map(
-                    str,
-                ),
-                sep="\n",
-            )
+            print(*[str(v) for v in vm.local_versions], sep="\n")
         else:
             print("No local versions found.")
     elif args.command == "ls-remote":
         print(*map(str, vm.remote_versions), sep="\n")
+    elif args.command == "install":
+        version = args.version.select(vm.remote_versions)
+        if version:
+            vm.install(version)
 
 
 if __name__ == "__main__":
